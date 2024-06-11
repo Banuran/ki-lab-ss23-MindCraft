@@ -7,9 +7,9 @@ import numpy as np
 IMAGE_SIZE = 256
 BATCH_SIZE = 1
 
+
 class VisualWSDDataset(Dataset):
-    def __init__(self, train, image_transform=None, text_transform=None, test_lang='en'):
-        self.train = train
+    def __init__(self, mode="train", image_transform=None, text_transform=None, test_lang='en'):
         self.image_transform = image_transform
         self.text_transform = text_transform
 
@@ -18,7 +18,7 @@ class VisualWSDDataset(Dataset):
         self.gold_txt_path = self.base_path + 'train.gold.v1.txt'
         self.image_path = self.base_path + '/train_images_v1/'
 
-        if not train:
+        if mode == "test":
             self.base_path = './data/'
             self.data_txt_path = self.base_path + test_lang + '.test.data.v1.1.txt'
             self.gold_txt_path = self.base_path + test_lang + '.test.gold.v1.1.txt'
@@ -27,6 +27,11 @@ class VisualWSDDataset(Dataset):
             if test_lang == 'fa':
                 self.data_txt_path = self.base_path + test_lang + '.test.data.txt'
                 self.gold_txt_path = self.base_path + test_lang + '.test.gold.txt'
+        elif mode == "val":
+            self.base_path = './data/semeval-2023-task-1-V-WSD-train-v1/trial_v1/'
+            self.data_txt_path = self.base_path + 'trial.data.v1.txt'
+            self.gold_txt_path = self.base_path + 'trial.gold.v1.txt'
+            self.image_path = self.base_path + '/trial_images_v1/'
         
 
         # load txts
