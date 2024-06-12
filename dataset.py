@@ -41,6 +41,7 @@ class VisualWSDDataset(Dataset):
         self.data_df = pd.read_csv(self.data_txt_path, delimiter = "\t", header=None)
         self.gold_df = pd.read_csv(self.gold_txt_path, delimiter = "\t", header=None)
         self.data_gold_df  = pd.concat([self.data_df.iloc[:, 0], self.data_df.iloc[:, 1], self.gold_df.iloc[:, 0]], axis=1, keys=['label', 'label_context', 'img_name'])
+        
         if self.tokenizer != None:
             self.gold_token = self.tokenizer(self.data_gold_df['label_context'].to_list())
 
@@ -75,7 +76,7 @@ class VisualWSDDataset(Dataset):
             # labels are the correct images
             # input_ids and attention_mask are tokenized text
             item = {key: torch.tensor(val[idx]) for key, val in self.gold_token.items()}
-            item['images'] = torch.tensor(correct_image)
+            item['images'] = torch.tensor(correct_image).detach()
             return item
 
         return {'label': label, 'label_context': label_context, 'correct_idx': correct_image_idx, 'correct_img': correct_image, 'imgs': images}
