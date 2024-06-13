@@ -166,3 +166,5 @@ data/*
 
 # models
 results/*
+ai-lab/*
+.gitignore
