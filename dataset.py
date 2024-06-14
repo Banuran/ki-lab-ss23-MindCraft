@@ -5,9 +5,10 @@ import pandas as pd
 import numpy as np
 import torch
 
+Image.MAX_IMAGE_PIXELS = None
+
 IMAGE_SIZE = 256
 BATCH_SIZE = 1
-
 
 class VisualWSDDataset(Dataset):
     def __init__(self, mode="train", image_transform=None, text_transform=None, tokenizer=None, test_lang='en'):
