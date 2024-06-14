@@ -16,7 +16,7 @@ def save_model(model: Module, legacy: bool = False):
     if legacy:
         return save_legacy(model)
     
-    path = _get_path
+    path = _get_path()
     disk_object = {
         'model_state': model.state_dict(),
         'metadata': _construct_metadata(model)
@@ -35,7 +35,7 @@ def load_model(filename: str, legacy: bool = False, legacy_auto_check: bool = Tr
     return disk_object['model_state'], disk_object['metadata']
 
 def save_legacy(model: Module) -> str:
-    path = _get_path
+    path = _get_path()
     save(model.state_dict(), path)
     return path
 
@@ -58,8 +58,8 @@ def _get_stamp() -> str:
 
 def _get_path(filename: str = "") -> str:
     if filename != "":
-        return _base_path + filename + _delim + _get_stamp
-    return _base_path + _get_stamp
+        return _base_path + filename + _delim + _get_stamp()
+    return _base_path + _get_stamp()
 
 def _reconstruct_path(name: str) -> str:
     return _base_path + name
