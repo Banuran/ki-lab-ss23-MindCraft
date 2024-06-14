@@ -83,7 +83,7 @@ def main():
 
     eval_model = md.CustomModel().to(device)
 
-    model_state = mdh.load_model(model_name, True)
+    model_state, _ = mdh.load_model(model_name)
     eval_model.load_state_dict(model_state)
     eval_model.eval()
     print(eval_model.device)

@@ -4,20 +4,35 @@ import warnings
 from torch import save, load
 from torch.nn import Module
 from datetime import datetime
+from model import CustomModel
+from typing import List, Dict, Tuple
 
 _base_path = "./results/"
 _delim = "_"
 _auto_legacy_check_default = False
-_auto_legacy_check_reference = datetime.strptime("2024-06-14-16:35:00", '%Y-%m-%d-%H:%M:%S')
+_auto_legacy_check_reference = datetime.strptime("2024-06-14-18:10:00", '%Y-%m-%d-%H:%M:%S')
 
 def save_model(model: Module, legacy: bool = False):
     if legacy:
         return save_legacy(model)
     
-def load_model(filename: str, legacy: bool = False, legacy_auto_check: bool = True):
+    path = _get_path
+    disk_object = {
+        'model_state': model.state_dict(),
+        'metadata': _construct_metadata(model)
+    }
+    save(disk_object, path)
+    return path
+
+    
+def load_model(filename: str, legacy: bool = False, legacy_auto_check: bool = True) -> Tuple[Module, dict]:
     legacy_auto_check_flag = legacy_auto_check and _check_for_legacy(filename)
     if legacy or legacy_auto_check_flag:
-        return load_legacy(filename)
+        return load_legacy(filename), None
+    
+    path = _reconstruct_path(filename)
+    disk_object = load(path)
+    return disk_object['model_state'], disk_object['metadata']
 
 def save_legacy(model: Module) -> str:
     path = _get_path
@@ -30,6 +45,13 @@ def load_legacy(model_name: str):
 
 def overwrite_base_path(base_path: str):
     _base_path = base_path
+
+def _construct_metadata(model: Module) -> dict:
+    metadata = {}
+    if isinstance(model, CustomModel):
+        metadata['device'] = model.device
+
+    return metadata
 
 def _get_stamp() -> str:
     return datetime.today().strftime('%Y-%m-%d-%H:%M:%S')

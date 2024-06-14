@@ -69,7 +69,7 @@ def main():
     print("Training complete.")
     ## end train loop
 
-    path = mdh.save_model(model, True)
+    path = mdh.save_model(model)
     print("saved model to: " + path)
 
 main()
