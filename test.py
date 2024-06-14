@@ -16,6 +16,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"#
 import sys
 
 import model as md
+import model_disk_helper as mdh
 
 IMAGE_SIZE = 224
 
@@ -72,7 +73,7 @@ def test_loop(loader, model):
 
 def main():
 
-    name = sys.argv[1]
+    model_name = sys.argv[1]
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -81,8 +82,9 @@ def main():
     image_composed = tt.transforms.Compose([scale, tensor])
 
     eval_model = md.CustomModel().to(device)
-    model_name = name
-    eval_model.load_state_dict(torch.load("./results/" + model_name))
+
+    model_state = mdh.load_model(model_name, True)
+    eval_model.load_state_dict(model_state)
     eval_model.eval()
     print(eval_model.device)
 
