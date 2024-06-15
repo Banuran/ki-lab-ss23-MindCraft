@@ -15,9 +15,10 @@ import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 import model as md
+import model_disk_helper as mdh
 
-BATCH_SIZE = 16
-IMAGE_SIZE = 255
+BATCH_SIZE = 64
+IMAGE_SIZE = 224
 
 
 def main():
@@ -31,6 +32,7 @@ def main():
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = md.CustomModel().to(device)
+
     print(model.device)
     
     optimizer = torch.optim.Adam([
@@ -67,10 +69,7 @@ def main():
     print("Training complete.")
     ## end train loop
 
-    stamp = datetime.today().strftime('%Y-%m-%d-%H:%M:%S')
-
-    path = "./results/" + stamp
-    torch.save(model.state_dict(), path)
+    path = mdh.save_model(model)
     print("saved model to: " + path)
 
 main()
