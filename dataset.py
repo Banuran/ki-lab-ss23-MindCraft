@@ -11,11 +11,12 @@ IMAGE_SIZE = 256
 BATCH_SIZE = 1
 
 class VisualWSDDataset(Dataset):
-    def __init__(self, mode="train", image_transform=None, text_transform=None, tokenizer=None, test_lang='en'):
+    def __init__(self, mode="train", image_transform=None, text_transform=None, tokenizer=None, test_lang='en', translate=False):
         self.image_transform = image_transform
         self.text_transform = text_transform
         self.tokenizer = tokenizer
         self.mode = mode
+        self.gold_translate = translate
 
         self.base_path = './data/semeval-2023-task-1-V-WSD-train-v1/train_v1/'
         self.data_txt_path = self.base_path + 'train.data.v1.txt'
@@ -27,10 +28,17 @@ class VisualWSDDataset(Dataset):
             self.data_txt_path = self.base_path + test_lang + '.test.data.v1.1.txt'
             self.gold_txt_path = self.base_path + test_lang + '.test.gold.v1.1.txt'
             self.image_path = self.base_path + '/test_images_resized/'
+            self.text_translation = './it_en.txt'
 
             if test_lang == 'fa':
                 self.data_txt_path = self.base_path + test_lang + '.test.data.txt'
                 self.gold_txt_path = self.base_path + test_lang + '.test.gold.txt'
+                self.text_translation = './fa_en.txt'
+
+            # open translation file
+            trans_file = open(self.text_translation, 'r')
+            self.gold_translation = trans_file.readlines()
+
         elif mode == "val":
             self.base_path = './data/semeval-2023-task-1-V-WSD-train-v1/trial_v1/'
             self.data_txt_path = self.base_path + 'trial.data.v1.txt'
@@ -79,5 +87,9 @@ class VisualWSDDataset(Dataset):
             item = {key: torch.tensor(val[idx]) for key, val in self.gold_token.items()}
             item['images'] = torch.tensor(correct_image).detach()
             return item
+        
+        # swap label contex with translated one
+        if self.translate:
+            label_context = self.gold_translation[idx]
 
         return {'label': label, 'label_context': label_context, 'correct_idx': correct_image_idx, 'correct_img': correct_image, 'imgs': images}
