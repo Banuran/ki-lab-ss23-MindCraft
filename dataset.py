@@ -16,7 +16,7 @@ class VisualWSDDataset(Dataset):
         self.text_transform = text_transform
         self.tokenizer = tokenizer
         self.mode = mode
-        self.gold_translate = translate
+        self.translate = translate
 
         self.base_path = './data/semeval-2023-task-1-V-WSD-train-v1/train_v1/'
         self.data_txt_path = self.base_path + 'train.data.v1.txt'
@@ -65,6 +65,10 @@ class VisualWSDDataset(Dataset):
         correct_image_idx = images_series[images_series == correct_image_name].index[0]-2
         images = []
 
+        # swap label contex with translated one
+        if self.translate:
+            label_context = self.gold_translation[idx]
+
         if self.mode == "test":
             for item in images_series:
                     images.append(Image.open(self.image_path + item).convert('RGB'))
@@ -87,9 +91,5 @@ class VisualWSDDataset(Dataset):
             item = {key: torch.tensor(val[idx]) for key, val in self.gold_token.items()}
             item['images'] = torch.tensor(correct_image).detach()
             return item
-        
-        # swap label contex with translated one
-        if self.translate:
-            label_context = self.gold_translation[idx]
 
         return {'label': label, 'label_context': label_context, 'correct_idx': correct_image_idx, 'correct_img': correct_image, 'imgs': images}
