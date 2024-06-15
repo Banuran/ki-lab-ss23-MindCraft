@@ -25,7 +25,7 @@ def hit(results, k):
     counter = 0
 
     for r in results:
-        sims = np.absolute(r[1])
+        sims = r[1]
         sorted = np.argsort(sims)[::-1][:k]
 
         if r[0] in sorted:
@@ -37,7 +37,7 @@ def mrr(results):
     sum = 0
 
     for r in results:
-        sims = np.absolute(r[1])
+        sims = r[1]
         sorted = np.argsort(sims)[::-1]
         sum += 1/(np.where(sorted==r[0])[0][0]+1)
 
