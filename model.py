@@ -16,10 +16,10 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"#
 import sys
 
 
-BATCH_SIZE = 16
+BATCH_SIZE = 128
 EMBED_DIM = 512
 TRANSFORMER_EMBED = 768
-IMAGE_SIZE = 255
+IMAGE_SIZE = 224
 
 class Projection(nn.Module):
     def __init__(self, d_in: int, d_out: int, p: float=0.5) -> None:
@@ -39,7 +39,7 @@ class Projection(nn.Module):
 class VisionEncoder(nn.Module):
     def __init__(self, d_out: int) -> None:
         super().__init__()
-        base = models.resnet34(pretrained=True)
+        base = models.resnet50(pretrained=True)
         d_in = base.fc.in_features
         base.fc = nn.Identity()
         self.base = base
@@ -60,8 +60,8 @@ class TextEncoder(nn.Module):
         for p in self.base.parameters():
             p.requires_grad = False
 
-    def forward(self, x):
-        out = self.base(x)[0]
+    def forward(self, input_ids, attention_mask):
+        out = self.base(input_ids, attention_mask=attention_mask)[0]
         out = out[:, 0, :]  # get CLS token output
         projected_vec = self.projection(out)
         projection_len = torch.norm(projected_vec, dim=-1, keepdim=True)
@@ -89,7 +89,10 @@ class CustomModel(nn.Module):
         text = self.tokenizer(text).to(self.device)
 
         image_embed = self.vision_encoder(images)
-        caption_embed = self.caption_encoder(text["input_ids"])
+        caption_embed = self.caption_encoder(text["input_ids"], text["attention_mask"])
+
+        image_embed = F.normalize(image_embed, p=2, dim=-1)
+        caption_embed = F.normalize(caption_embed, p=2, dim=-1)
 
         similarity = caption_embed @ image_embed.T
 
@@ -111,7 +114,7 @@ class CustomModel(nn.Module):
     
     def top_image(self, images, text):
         text = self.tokenizer(text).to(self.device)
-        caption_embed = self.caption_encoder(text["input_ids"])
+        caption_embed = self.caption_encoder(text["input_ids"], text["attention_mask"])
 
         similarities = []
 
