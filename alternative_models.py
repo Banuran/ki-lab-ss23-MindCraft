@@ -124,8 +124,8 @@ class TextEncoderGPT2(nn.Module):
         for p in self.base.parameters():
             p.requires_grad = False
 
-    def forward(self, x):
-        out = self.base(input_ids=x)[0]  # pass only input_ids
+    def forward(self, input_ids, attention_mask):
+        out = self.base(input_ids, attention_mask=attention_mask)[0]  # pass only input_ids
         out = out[:, -1, :]  # get last token output
         projected_vec = self.projection(out)
         projection_len = torch.norm(projected_vec, dim=-1, keepdim=True)
@@ -299,7 +299,7 @@ class CustomModelResGPT2(nn.Module):
         super().__init__()
         self.vision_encoder = VisionEncoderRes(EMBED_DIM)
         self.caption_encoder = TextEncoderGPT2(EMBED_DIM)
-        self.tokenizer = TokenizerGPT2(AutoTokenizer.from_pretrained("distilbert-base-multilingual-cased"))
+        self.tokenizer = TokenizerGPT2(AutoTokenizer.from_pretrained("gpt2"))
         self.lr = lr
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.name = "CustomModelResGPT2"
@@ -352,7 +352,7 @@ class CustomModelViTGPT2(nn.Module):
         super().__init__()
         self.vision_encoder = VisionEncoderViT(EMBED_DIM)
         self.caption_encoder = TextEncoderGPT2(EMBED_DIM)
-        self.tokenizer = TokenizerGPT2(AutoTokenizer.from_pretrained("distilbert-base-multilingual-cased"))
+        self.tokenizer = TokenizerGPT2(AutoTokenizer.from_pretrained("gpt2"))
         self.lr = lr
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.name = "CustomModelViTGPT2"
@@ -405,7 +405,7 @@ class CustomModelEfficientGPT2(nn.Module):
         super().__init__()
         self.vision_encoder = VisionEncoderEfficient(EMBED_DIM)
         self.caption_encoder = TextEncoderGPT2(EMBED_DIM)
-        self.tokenizer = TokenizerGPT2(AutoTokenizer.from_pretrained("distilbert-base-multilingual-cased"))
+        self.tokenizer = TokenizerGPT2(AutoTokenizer.from_pretrained("gpt2"))
         self.lr = lr
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.name = "CustomModelEfficientGPT2"
