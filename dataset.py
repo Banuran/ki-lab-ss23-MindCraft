@@ -69,7 +69,11 @@ class VisualWSDDataset(Dataset):
             return len(self.data_gold_df) * (len(self.augmentations) + 1)
 
     def __getitem__(self, idx):
-        original_idx = idx // (len(self.augmentations) + 1)
+        if self.augmentation:
+            original_idx = idx // (len(self.augmentations) + 1)
+        else:
+            original_idx = idx
+        
         augment_idx = idx % (len(self.augmentations) + 1)
         label = self.data_gold_df.iloc[original_idx]['label']
         label_context = self.data_gold_df.iloc[original_idx]['label_context']
