@@ -1,6 +1,6 @@
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
-from torchvision import transforms as tt
+import torchvision.transforms.v2 as tr
 import pandas as pd
 import numpy as np
 import torch
@@ -11,7 +11,7 @@ IMAGE_SIZE = 256
 BATCH_SIZE = 1
 
 class VisualWSDDataset(Dataset):
-    def __init__(self, mode="train", image_transform=None, text_transform=None, tokenizer=None, test_lang='en', translate=False):
+    def __init__(self, mode="train", image_transform=None, text_transform=None, tokenizer=None, test_lang='en', translate=False, augmentation=False):
         self.image_transform = image_transform
         self.text_transform = text_transform
         self.tokenizer = tokenizer
@@ -54,20 +54,33 @@ class VisualWSDDataset(Dataset):
         if self.tokenizer != None:
             self.gold_token = self.tokenizer(self.data_gold_df['label_context'].to_list())
 
+        self.augmentation = augmentation
+        self.augmentations = [
+            tr.RandomHorizontalFlip(p=1),
+            tr.ColorJitter(brightness=0.5),
+            tr.RandomRotation(30)
+            # other augmentations possible: https://pytorch.org/vision/main/auto_examples/transforms/plot_transforms_illustrations.html#sphx-glr-auto-examples-transforms-plot-transforms-illustrations-py
+        ]
+
     def __len__(self):
-        return len(self.data_gold_df)
+        if self.mode == "test" or not self.augmentation:
+            return len(self.data_gold_df)
+        else:
+            return len(self.data_gold_df) * (len(self.augmentations) + 1)
 
     def __getitem__(self, idx):
-        label = self.data_gold_df.iloc[idx]['label']
-        label_context = self.data_gold_df.iloc[idx]['label_context']
-        correct_image_name = self.data_gold_df.iloc[idx]['img_name']
-        images_series = self.data_df.iloc[idx][2:]
+        original_idx = idx // (len(self.augmentations) + 1)
+        augment_idx = idx % (len(self.augmentations) + 1)
+        label = self.data_gold_df.iloc[original_idx]['label']
+        label_context = self.data_gold_df.iloc[original_idx]['label_context']
+        correct_image_name = self.data_gold_df.iloc[original_idx]['img_name']
+        images_series = self.data_df.iloc[original_idx][2:]
         correct_image_idx = images_series[images_series == correct_image_name].index[0]-2
         images = []
 
         # swap label contex with translated one
         if self.translate:
-            label_context = self.gold_translation[idx]
+            label_context = self.gold_translation[original_idx]
 
         if self.mode == "test":
             for item in images_series:
@@ -75,11 +88,14 @@ class VisualWSDDataset(Dataset):
             correct_image = images[correct_image_idx]
         else:
             correct_image = Image.open(self.image_path + images_series[correct_image_idx+2]).convert('RGB')
+            if augment_idx > 0 and self.augmentation:
+                augment = self.augmentations[augment_idx - 1]
+                correct_image = augment(correct_image)
 
         if self.image_transform:
             correct_image = self.image_transform(correct_image)
             for idx in range(len(images)):
-                images[idx] = self.image_transform(images[idx])
+                images[original_idx] = self.image_transform(images[original_idx])
 
         if self.text_transform:
             label = self.text_transform(label)
@@ -88,7 +104,7 @@ class VisualWSDDataset(Dataset):
         if self.tokenizer != None:
             # labels are the correct images
             # input_ids and attention_mask are tokenized text
-            item = {key: torch.tensor(val[idx]) for key, val in self.gold_token.items()}
+            item = {key: torch.tensor(val[original_idx]) for key, val in self.gold_token.items()}
             item['images'] = torch.tensor(correct_image).detach()
             return item
 
