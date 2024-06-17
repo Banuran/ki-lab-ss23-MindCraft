@@ -22,6 +22,7 @@ import model as md
 import model_disk_helper as mdh
 
 IMAGE_SIZE = 224
+SILENT = False
 
 # if k is 1 gives all instances with the correct prediction as top prediction
 # if k > 1 the correct prediction is in the top k predictions of the model
@@ -62,7 +63,8 @@ def test_loop(loader, model):
         top_image = np.argsort(sims)[::-1][0]
 
         #print(np.argsort(np.absolute(sims)))
-        #print("batch: " + str(i+1) + "/" + str(len(loader)) + " predicted: " + str(top_image) + " correct: " + str(correct_idx))
+        if not SILENT:
+            print("batch: " + str(i+1) + "/" + str(len(loader)) + " predicted: " + str(top_image) + " correct: " + str(correct_idx))
 
         #if top_image == correct_idx:
         #    correct += 1
@@ -87,13 +89,16 @@ def main():
     model_state, metadata = mdh.load_model(model_name)
 
     eval_model: Module
-    if metadata != None and metadata['name'] != None and hasattr(amd, metadata['name']):
+    if metadata != None and "name" in metadata and hasattr(amd, metadata['name']):
         print(f"Model name: {metadata['name']}")
         cls = getattr(amd, metadata['name'])
         eval_model = cls()
     else:
+        name = "None"
+        if metadata != None and "name" in metadata:
+            name = metadata['name'] 
         message = "Could not determine class for {name} automatically. Defaulting to CustomModel."
-        message = message.format(name=metadata['name'])
+        message = message.format(name=name)
         warnings.warn(message)
         eval_model = md.CustomModel()
 
