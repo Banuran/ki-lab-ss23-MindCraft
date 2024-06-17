@@ -4,8 +4,10 @@ import torchvision.transforms.v2 as tr
 import pandas as pd
 import numpy as np
 import torch
+import warnings
 
 Image.MAX_IMAGE_PIXELS = None
+warnings.filterwarnings("ignore", message="Corrupt EXIF data.  Expecting to read 2 bytes but only got 0.")
 
 IMAGE_SIZE = 256
 BATCH_SIZE = 1
