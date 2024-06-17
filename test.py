@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torchvision import models
 from transformers import AutoModel, AutoTokenizer, BertTokenizer
 from torch.utils.data import Dataset, DataLoader
+from torch.nn import Module
 from PIL import Image, ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 import pandas as pd
@@ -14,6 +15,7 @@ from torchvision import transforms as tt
 os.environ["TOKENIZERS_PARALLELISM"] = "false"#
 #import train
 import sys
+import warnings
 
 import alternative_models as amd
 import model as md
@@ -82,10 +84,21 @@ def main():
     tensor = tt.ToTensor()
     image_composed = tt.transforms.Compose([scale, tensor])
 
-    eval_model = amd.CustomModelEfficientGPT2().to(device)
-
     model_state, metadata = mdh.load_model(model_name)
-    print(metadata['name'])
+
+    eval_model: Module
+    if metadata != None and metadata['name'] != None and hasattr(amd, metadata['name']):
+        print(f"Model name: {metadata['name']}")
+        cls = getattr(amd, metadata['name'])
+        eval_model = cls()
+    else:
+        message = "Could not determine class for {name} automatically. Defaulting to CustomModel."
+        message = message.format(name=metadata['name'])
+        warnings.warn(message)
+        eval_model = md.CustomModel()
+
+    eval_model = eval_model.to(device)
+
     eval_model.load_state_dict(model_state)
     eval_model.eval()
     print(eval_model.device)
