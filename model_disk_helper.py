@@ -1,5 +1,6 @@
 import re
 import warnings
+import os
 
 from torch import save, load
 from torch.nn import Module
@@ -12,14 +13,15 @@ _delim = "_"
 _auto_legacy_check_default = False
 _auto_legacy_check_reference = datetime.strptime("2024-06-14-18:10:00", '%Y-%m-%d-%H:%M:%S')
 
-def save_model(model: Module, legacy: bool = False):
+def save_model(model: Module, numEpochs: int = 0, trainingTime: float = 0, legacy: bool = False):
     if legacy:
         return save_legacy(model)
     
-    path = _get_path()
+    filename = model.name if model.name else ""
+    path = _get_path(filename)
     disk_object = {
         'model_state': model.state_dict(),
-        'metadata': _construct_metadata(model)
+        'metadata': _construct_metadata(model, numEpochs, trainingTime)
     }
     save(disk_object, path)
     return path
@@ -43,13 +45,30 @@ def load_legacy(model_name: str):
     path = _reconstruct_path(model_name)
     return load(path)
 
+# def enhance_metadata_with_metric(filename: str, hit, mrr):    
+#     path = _reconstruct_path(filename)
+#     disk_object = load(path)
+#     metric = {
+#         'hit': hit,
+#         'mrr': mrr
+#     }
+#     disk_object['metadata'] = disk_object['metadata'] | metric
+
+#     save(disk_object, path)
+
 def overwrite_base_path(base_path: str):
     _base_path = base_path
 
-def _construct_metadata(model: Module) -> dict:
+def _construct_metadata(model: Module, numEpochs: int = 0, trainingTime: float = 0,) -> dict:
     metadata = {}
-    if isinstance(model, CustomModel):
-        metadata['device'] = model.device
+    # if isinstance(model, CustomModel):
+    #     metadata['device'] = model.device
+    metadata['device'] = model.device
+    #metadata['hardwareName'] = "NVIDIA GeForce RTX 2060"
+    metadata['name'] = model.name
+    metadata['numEpochs'] = numEpochs
+    metadata['trainingTime'] = trainingTime
+    metadata['savedAt'] = _get_stamp()
 
     return metadata
 
