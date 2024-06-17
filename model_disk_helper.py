@@ -1,12 +1,10 @@
 import re
 import warnings
-import os
 
 from torch import save, load
 from torch.nn import Module
 from datetime import datetime
-from model import CustomModel
-from typing import List, Dict, Tuple
+from typing import Tuple
 
 _base_path = "./results/"
 _delim = "_"

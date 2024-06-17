@@ -1,21 +1,18 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from torchvision import models
-from transformers import AutoModel, AutoTokenizer, BertTokenizer
-from torch.utils.data import Dataset, DataLoader
-from PIL import Image, ImageFile
-ImageFile.LOAD_TRUNCATED_IMAGES = True
-from transformers import ViTModel, GPT2Model, GPT2Tokenizer
 from torchvision.models import efficientnet_b0
-import pandas as pd
-import dataset as wsd
-import numpy as np
+from transformers import AutoModel, AutoTokenizer, BertTokenizer
+from transformers import ViTModel, GPT2Model, GPT2Tokenizer
+
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
 import os
-from torchvision import transforms as tt
 os.environ["TOKENIZERS_PARALLELISM"] = "false"#
 #import train
-import sys
 
 
 BATCH_SIZE = 128

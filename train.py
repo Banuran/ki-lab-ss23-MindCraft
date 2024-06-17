@@ -1,16 +1,11 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torchvision import models
-from transformers import AutoModel, AutoTokenizer, BertTokenizer
+from torch.utils.data import DataLoader
 from torchvision import transforms as tt
-from torch.utils.data import Dataset, DataLoader
-from PIL import Image, ImageFile
-from datetime import datetime
+
+from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-import pandas as pd
+
 import dataset as wsd
-import numpy as np
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import time
@@ -20,7 +15,7 @@ import model_disk_helper as mdh
 
 BATCH_SIZE = 64
 IMAGE_SIZE = 224
-NUM_EPOCHS = 10
+NUM_EPOCHS = 1
 AUGMENTATION_ENABLED = False
 
 def main():
