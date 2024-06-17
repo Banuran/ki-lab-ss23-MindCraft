@@ -13,13 +13,15 @@ import dataset as wsd
 import numpy as np
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+import time
 
 import model as md
 import model_disk_helper as mdh
 
 BATCH_SIZE = 64
 IMAGE_SIZE = 224
-
+NUM_EPOCHS = 10
+AUGMENTATION_ENABLED = False
 
 def main():
 
@@ -27,7 +29,7 @@ def main():
     tensor = tt.ToTensor()
     image_composed = tt.transforms.Compose([scale, tensor])
 
-    train_set = wsd.VisualWSDDataset(mode="train", image_transform=image_composed)
+    train_set = wsd.VisualWSDDataset(mode="train", image_transform=image_composed, augmentation=AUGMENTATION_ENABLED)
     train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True, num_workers=3)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -42,10 +44,11 @@ def main():
 
     ## train loop
     start_epoch = 0
-    num_epochs = 3
+
+    start_time = time.time()
 
     batch_zero = True
-    for epoch in range(start_epoch, num_epochs):
+    for epoch in range(start_epoch, NUM_EPOCHS):
         model.train()
         for batch in train_loader:
             image = batch["correct_img"].to(device)
@@ -59,17 +62,18 @@ def main():
             optimizer.step()
 
             if batch_zero:
-                print(f"Epoch [{0}/{num_epochs}], Batch Loss: {loss.item()}")
+                print(f"Epoch [{0}/{NUM_EPOCHS}], Batch Loss: {loss.item()}")
                 batch_zero = False
 
 
         # Print training statistics
-        print(f"Epoch [{epoch+1}/{num_epochs}], Batch Loss: {loss.item()}")
+        print(f"Epoch [{epoch+1}/{NUM_EPOCHS}], Batch Loss: {loss.item()}")
 
+    elapsed_time = time.time() - start_time
     print("Training complete.")
     ## end train loop
 
-    path = mdh.save_model(model)
+    path = mdh.save_model(model, NUM_EPOCHS, elapsed_time)
     print("saved model to: " + path)
 
 main()

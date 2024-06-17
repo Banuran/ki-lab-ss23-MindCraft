@@ -84,6 +84,7 @@ class CustomModel(nn.Module):
         self.tokenizer = Tokenizer(AutoTokenizer.from_pretrained("distilbert-base-multilingual-cased"))
         self.lr = lr
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.name = "CustomModel"
 
     def forward(self, images, text):
         text = self.tokenizer(text).to(self.device)
