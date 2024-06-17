@@ -99,7 +99,7 @@ class VisualWSDDataset(Dataset):
         if self.image_transform:
             correct_image = self.image_transform(correct_image)
             for idx in range(len(images)):
-                images[original_idx] = self.image_transform(images[original_idx])
+                images[idx] = self.image_transform(images[idx])
 
         if self.text_transform:
             label = self.text_transform(label)
