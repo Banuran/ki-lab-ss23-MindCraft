@@ -45,16 +45,16 @@ def load_legacy(model_name: str):
     path = _reconstruct_path(model_name)
     return load(path)
 
-# def enhance_metadata_with_metric(filename: str, hit, mrr):    
-#     path = _reconstruct_path(filename)
-#     disk_object = load(path)
-#     metric = {
-#         'hit': hit,
-#         'mrr': mrr
-#     }
-#     disk_object['metadata'] = disk_object['metadata'] | metric
+def enhance_metadata_with_metric(filename: str, hit, mrr):    
+    path = _reconstruct_path(filename)
+    disk_object = load(path)
+    metric = {
+        'hit': hit,
+        'mrr': mrr
+    }
+    disk_object['metadata'] = disk_object['metadata'] | metric
 
-#     save(disk_object, path)
+    save(disk_object, path)
 
 def overwrite_base_path(base_path: str):
     _base_path = base_path

@@ -15,6 +15,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"#
 #import train
 import sys
 
+import alternative_models as amd
 import model as md
 import model_disk_helper as mdh
 
@@ -59,7 +60,7 @@ def test_loop(loader, model):
         top_image = np.argsort(sims)[::-1][0]
 
         #print(np.argsort(np.absolute(sims)))
-        print("batch: " + str(i+1) + "/" + str(len(loader)) + " predicted: " + str(top_image) + " correct: " + str(correct_idx))
+        #print("batch: " + str(i+1) + "/" + str(len(loader)) + " predicted: " + str(top_image) + " correct: " + str(correct_idx))
 
         #if top_image == correct_idx:
         #    correct += 1
@@ -81,9 +82,10 @@ def main():
     tensor = tt.ToTensor()
     image_composed = tt.transforms.Compose([scale, tensor])
 
-    eval_model = md.CustomModel().to(device)
+    eval_model = amd.CustomModelEfficientGPT2().to(device)
 
-    model_state, _ = mdh.load_model(model_name)
+    model_state, metadata = mdh.load_model(model_name)
+    print(metadata['name'])
     eval_model.load_state_dict(model_state)
     eval_model.eval()
     print(eval_model.device)
@@ -94,7 +96,12 @@ def main():
 
     results = test_loop(test_loader, eval_model)
 
-    print("hit@1: " + str(hit(results, 1)))
-    print("mrr: " + str(mrr(results)))
+    hit_result = hit(results, 1)
+    mrr_result = mrr(results)
+    if metadata != None:
+        mdh.enhance_metadata_with_metric(model_name, hit_result, mrr_result)
+
+    print("hit@1: " + str(hit_result))
+    print("mrr: " + str(mrr_result))
 
 main()
