@@ -54,18 +54,47 @@ def enhance_metadata_with_metric(filename: str, hit, mrr):
 
     save(disk_object, path)
 
+def view_metadata(filename: str):
+    _, metadata = load_model(filename)
+
+    if metadata == None:
+        print("No metadata found in this file.")
+        return
+    
+    for key, value in metadata.items():
+        print(f"{key}: {value}")
+
+def add_custom_metadata(filename: str, key: str, value: str):
+    path = _reconstruct_path(filename)
+    disk_object = load(path)
+
+    if disk_object['metadata'] == None:
+        metadata = {
+            key: value
+        }
+        disk_object['metadata'] = metadata
+    else:
+        disk_object['metadata'][key] = value
+
+    save(disk_object, path)
+
 def overwrite_base_path(base_path: str):
     _base_path = base_path
 
 def _construct_metadata(model: Module, numEpochs: int = 0, trainingTime: float = 0,) -> dict:
     metadata = {}
-    # if isinstance(model, CustomModel):
-    #     metadata['device'] = model.device
+    
     metadata['device'] = model.device
-    #metadata['hardwareName'] = "NVIDIA GeForce RTX 2060"
     metadata['name'] = model.name
+    
     metadata['numEpochs'] = numEpochs
     metadata['trainingTime'] = trainingTime
+    metadata['trainingTimeReadable'] = _get_human_readable_time(trainingTime)
+
+    # metadata['hardwareName'] = "NVIDIA GeForce RTX 2060"
+    # metadata['description'] = "Additional context"
+    # metadata['contextAdded'] = "A photo of a [label] within the context of a [context]."
+
     metadata['savedAt'] = _get_stamp()
 
     return metadata
@@ -104,3 +133,12 @@ def _extract_timestamp(filename: str) -> str:
         lt = "legacy" if _auto_legacy_check_default else "no legacy"
         warnings.warn(message.format(fn=filename,lt=lt))
         return ""
+
+def _get_human_readable_time(time: float) -> str:
+    readable_str = "{hours} h {minutes} min {seconds} s"
+
+    hours = time // 3600
+    minutes = time // 60 % 60
+    seconds = time % 60
+
+    return readable_str.format(hours=hours,minutes=minutes,seconds=seconds)

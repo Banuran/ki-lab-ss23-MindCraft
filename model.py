@@ -30,7 +30,29 @@ class Projection(nn.Module):
         embed2 = self.drop(self.linear2(F.gelu(embed1)))
         embeds = self.layer_norm(embed1 + embed2)
         return embeds
-    
+
+class ExtendedProjection(nn.Module):
+    def __init__(self, d_in: int, d_out: int, p: float=0.5) -> None:
+        super().__init__()
+        self.linear1 = nn.Linear(d_in, d_out, bias=False)
+        self.linear2 = nn.Linear(d_out, d_out, bias=False)
+        self.linear3 = nn.Linear(d_out, d_out, bias=False)
+        self.linear4 = nn.Linear(d_out, d_out, bias=False)
+        self.layer_norm = nn.LayerNorm(d_out)
+        self.drop = nn.Dropout(p)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.linear1(x)
+        x = F.gelu(x)
+        x = self.linear2(x)
+        x = F.gelu(x)
+        x = self.linear3(x)
+        x = F.gelu(x)
+        x = self.linear4(x)
+        x = F.gelu(x)
+        x = self.drop(x)
+        x = self.layer_norm(x)
+        return x    
 
 class VisionEncoder(nn.Module):
     def __init__(self, d_out: int) -> None:
@@ -40,6 +62,7 @@ class VisionEncoder(nn.Module):
         base.fc = nn.Identity()
         self.base = base
         self.projection = Projection(d_in, d_out)
+        #self.projection = ExtendedProjection(d_in, d_out)
         for p in self.base.parameters():
             p.requires_grad = False
 
@@ -53,6 +76,7 @@ class TextEncoder(nn.Module):
         super().__init__()
         self.base = AutoModel.from_pretrained("distilbert-base-multilingual-cased")
         self.projection = Projection(TRANSFORMER_EMBED, d_out)
+        #self.projection = ExtendedProjection(TRANSFORMER_EMBED, d_out)
         for p in self.base.parameters():
             p.requires_grad = False
 
