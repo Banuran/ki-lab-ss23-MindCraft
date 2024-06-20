@@ -9,6 +9,7 @@ from transformers import ViTModel, GPT2Model, GPT2Tokenizer
 
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+import timm
 
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"#
@@ -77,6 +78,38 @@ class VisionEncoderEfficient(nn.Module):
 
         self.projection = Projection(d_in, d_out)
 
+        for p in self.base.parameters():
+            p.requires_grad = False
+
+    def forward(self, x):
+        features = self.base(x)
+        projected_vec = self.projection(features)
+        projection_len = torch.norm(projected_vec, dim=-1, keepdim=True)
+        return projected_vec / projection_len
+
+class VisionEncoderConvNext(nn.Module):
+    def __init__(self, d_out: int) -> None:
+        super().__init__()
+        self.base = timm.create_model('convnext_base', pretrained=True)
+        d_in = self.base.head.fc.in_features
+        self.base.head.fc = nn.Identity()
+        self.projection = Projection(d_in, d_out)
+        for p in self.base.parameters():
+            p.requires_grad = False
+
+    def forward(self, x):
+        features = self.base(x)
+        projected_vec = self.projection(features)
+        projection_len = torch.norm(projected_vec, dim=-1, keepdim=True)
+        return projected_vec / projection_len
+    
+class VisionEncoderConvNextV2(nn.Module):
+    def __init__(self, d_out: int) -> None:
+        super().__init__()
+        self.base = timm.create_model('convnextv2_base', pretrained=True)
+        d_in = self.base.head.fc.in_features
+        self.base.head.fc = nn.Identity()
+        self.projection = Projection(d_in, d_out)
         for p in self.base.parameters():
             p.requires_grad = False
 
@@ -291,6 +324,108 @@ class CustomModelEfficientBERT(nn.Module):
 
         return similarities
 
+class CustomModelConvNextBERT(nn.Module):
+    def __init__(self, lr: float = 1e-3) -> None:
+        super().__init__()
+        self.vision_encoder = VisionEncoderConvNext(EMBED_DIM)
+        self.caption_encoder = TextEncoderBERT(EMBED_DIM)
+        self.tokenizer = TokenizerBERT(AutoTokenizer.from_pretrained("distilbert-base-multilingual-cased"))
+        self.lr = lr
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.name = "CustomModelConvNextBERT"
+
+    def forward(self, images, text):
+        text = self.tokenizer(text).to(self.device)
+
+        image_embed = self.vision_encoder(images)
+        caption_embed = self.caption_encoder(text["input_ids"], text["attention_mask"])
+
+        image_embed = F.normalize(image_embed, p=2, dim=-1)
+        caption_embed = F.normalize(caption_embed, p=2, dim=-1)
+
+        similarity = caption_embed @ image_embed.T
+
+        loss = self.CLIP_loss(similarity)
+        img_acc, cap_acc = metrics(similarity)
+
+        return loss, img_acc, cap_acc
+    
+    def CLIP_loss(self, logits: torch.Tensor) -> torch.Tensor:
+        n = logits.shape[1]      # number of samples
+        labels = torch.arange(n).to(self.device) # Create labels tensor
+        # Calculate cross entropy losses along axis 0 and 1
+        loss_i = F.cross_entropy(logits.transpose(0, 1), labels, reduction="mean")
+        loss_t = F.cross_entropy(logits, labels, reduction="mean")
+        # Calculate the final loss
+        loss = (loss_i + loss_t) / 2
+
+        return loss
+    
+    def top_image(self, images, text):
+        text = self.tokenizer(text).to(self.device)
+        caption_embed = self.caption_encoder(text["input_ids"], text["attention_mask"])
+
+        similarities = []
+
+        for image in images:
+            image_embed = self.vision_encoder(image.to(self.device))
+            similarities.append(F.cosine_similarity(image_embed, caption_embed, dim=1).item())
+
+        #top_image = np.argsort(similarities)[-1:][::-1]
+
+        return similarities
+    
+class CustomModelConvNextV2BERT(nn.Module):
+    def __init__(self, lr: float = 1e-3) -> None:
+        super().__init__()
+        self.vision_encoder = VisionEncoderViT(EMBED_DIM)
+        self.caption_encoder = TextEncoderBERT(EMBED_DIM)
+        self.tokenizer = TokenizerBERT(AutoTokenizer.from_pretrained("distilbert-base-multilingual-cased"))
+        self.lr = lr
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.name = "CustomModelConvNextV2BERT"
+
+    def forward(self, images, text):
+        text = self.tokenizer(text).to(self.device)
+
+        image_embed = self.vision_encoder(images)
+        caption_embed = self.caption_encoder(text["input_ids"], text["attention_mask"])
+
+        image_embed = F.normalize(image_embed, p=2, dim=-1)
+        caption_embed = F.normalize(caption_embed, p=2, dim=-1)
+
+        similarity = caption_embed @ image_embed.T
+
+        loss = self.CLIP_loss(similarity)
+        img_acc, cap_acc = metrics(similarity)
+
+        return loss, img_acc, cap_acc
+    
+    def CLIP_loss(self, logits: torch.Tensor) -> torch.Tensor:
+        n = logits.shape[1]      # number of samples
+        labels = torch.arange(n).to(self.device) # Create labels tensor
+        # Calculate cross entropy losses along axis 0 and 1
+        loss_i = F.cross_entropy(logits.transpose(0, 1), labels, reduction="mean")
+        loss_t = F.cross_entropy(logits, labels, reduction="mean")
+        # Calculate the final loss
+        loss = (loss_i + loss_t) / 2
+
+        return loss
+    
+    def top_image(self, images, text):
+        text = self.tokenizer(text).to(self.device)
+        caption_embed = self.caption_encoder(text["input_ids"], text["attention_mask"])
+
+        similarities = []
+
+        for image in images:
+            image_embed = self.vision_encoder(image.to(self.device))
+            similarities.append(F.cosine_similarity(image_embed, caption_embed, dim=1).item())
+
+        #top_image = np.argsort(similarities)[-1:][::-1]
+
+        return similarities
+
 class CustomModelResGPT2(nn.Module):
     def __init__(self, lr: float = 1e-3) -> None:
         super().__init__()
@@ -459,3 +594,109 @@ def metrics(similarity: torch.Tensor):
     cap_acc = (cap2img_match_idx == y).float().mean()
 
     return img_acc, cap_acc
+
+class CustomModelConvNextBERT(nn.Module):
+    def __init__(self, lr: float = 1e-3) -> None:
+        super().__init__()
+        self.vision_encoder = VisionEncoderConvNext(EMBED_DIM)
+        self.caption_encoder = TextEncoderBERT(EMBED_DIM)
+        self.tokenizer = TokenizerGPT2(AutoTokenizer.from_pretrained("gpt2"))
+        self.lr = lr
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.name = "CustomModelConvNextGPT2"
+
+    def forward(self, images, text):
+        text_tokens = self.tokenizer(text)
+        text_input_ids = text_tokens["input_ids"].squeeze(1).to(self.device)  # Ensure correct shape
+        attention_mask = text_tokens["attention_mask"].squeeze(1).to(self.device)  # Ensure correct shape
+
+        image_embed = self.vision_encoder(images)
+        caption_embed = self.caption_encoder(text_input_ids, attention_mask)
+
+        image_embed = F.normalize(image_embed, p=2, dim=-1)
+        caption_embed = F.normalize(caption_embed, p=2, dim=-1)
+
+        similarity = caption_embed @ image_embed.T
+
+        loss = self.CLIP_loss(similarity)
+        img_acc, cap_acc = metrics(similarity)
+
+        return loss, img_acc, cap_acc
+    
+    def CLIP_loss(self, logits: torch.Tensor) -> torch.Tensor:
+        n = logits.shape[1]      # number of samples
+        labels = torch.arange(n).to(self.device) # Create labels tensor
+        # Calculate cross entropy losses along axis 0 and 1
+        loss_i = F.cross_entropy(logits.transpose(0, 1), labels, reduction="mean")
+        loss_t = F.cross_entropy(logits, labels, reduction="mean")
+        # Calculate the final loss
+        loss = (loss_i + loss_t) / 2
+
+        return loss
+    
+    def top_image(self, images, text):
+        text = self.tokenizer(text).to(self.device)
+        caption_embed = self.caption_encoder(text["input_ids"], text["attention_mask"])
+
+        similarities = []
+
+        for image in images:
+            image_embed = self.vision_encoder(image.to(self.device))
+            similarities.append(F.cosine_similarity(image_embed, caption_embed, dim=1).item())
+
+        #top_image = np.argsort(similarities)[-1:][::-1]
+
+        return similarities
+    
+class CustomModelConvNextV2BERT(nn.Module):
+    def __init__(self, lr: float = 1e-3) -> None:
+        super().__init__()
+        self.vision_encoder = VisionEncoderViT(EMBED_DIM)
+        self.caption_encoder = TextEncoderBERT(EMBED_DIM)
+        self.tokenizer = TokenizerGPT2(AutoTokenizer.from_pretrained("gpt2"))
+        self.lr = lr
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.name = "CustomModelConvNextV2GPT2"
+
+    def forward(self, images, text):
+        text_tokens = self.tokenizer(text)
+        text_input_ids = text_tokens["input_ids"].squeeze(1).to(self.device)  # Ensure correct shape
+        attention_mask = text_tokens["attention_mask"].squeeze(1).to(self.device)  # Ensure correct shape
+
+        image_embed = self.vision_encoder(images)
+        caption_embed = self.caption_encoder(text_input_ids, attention_mask)
+
+        image_embed = F.normalize(image_embed, p=2, dim=-1)
+        caption_embed = F.normalize(caption_embed, p=2, dim=-1)
+
+        similarity = caption_embed @ image_embed.T
+
+        loss = self.CLIP_loss(similarity)
+        img_acc, cap_acc = metrics(similarity)
+
+        return loss, img_acc, cap_acc
+    
+    def CLIP_loss(self, logits: torch.Tensor) -> torch.Tensor:
+        n = logits.shape[1]      # number of samples
+        labels = torch.arange(n).to(self.device) # Create labels tensor
+        # Calculate cross entropy losses along axis 0 and 1
+        loss_i = F.cross_entropy(logits.transpose(0, 1), labels, reduction="mean")
+        loss_t = F.cross_entropy(logits, labels, reduction="mean")
+        # Calculate the final loss
+        loss = (loss_i + loss_t) / 2
+
+        return loss
+    
+    def top_image(self, images, text):
+        text = self.tokenizer(text).to(self.device)
+        caption_embed = self.caption_encoder(text["input_ids"], text["attention_mask"])
+
+        similarities = []
+
+        for image in images:
+            image_embed = self.vision_encoder(image.to(self.device))
+            similarities.append(F.cosine_similarity(image_embed, caption_embed, dim=1).item())
+
+        #top_image = np.argsort(similarities)[-1:][::-1]
+
+        return similarities
