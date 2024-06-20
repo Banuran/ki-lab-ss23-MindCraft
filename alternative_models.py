@@ -595,7 +595,7 @@ def metrics(similarity: torch.Tensor):
 
     return img_acc, cap_acc
 
-class CustomModelConvNextBERT(nn.Module):
+class CustomModelConvNextGPT2(nn.Module):
     def __init__(self, lr: float = 1e-3) -> None:
         super().__init__()
         self.vision_encoder = VisionEncoderConvNext(EMBED_DIM)
@@ -648,7 +648,7 @@ class CustomModelConvNextBERT(nn.Module):
 
         return similarities
     
-class CustomModelConvNextV2BERT(nn.Module):
+class CustomModelConvNextV2GPT2(nn.Module):
     def __init__(self, lr: float = 1e-3) -> None:
         super().__init__()
         self.vision_encoder = VisionEncoderViT(EMBED_DIM)
