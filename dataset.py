@@ -114,3 +114,41 @@ class VisualWSDDataset(Dataset):
             return item
 
         return {'label': label, 'label_context': label_context, 'correct_idx': correct_image_idx, 'correct_img': correct_image, 'imgs': images}
+
+import os
+import json
+from PIL import Image
+import torch
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
+
+import os
+import torch
+from zipfile import ZipFile
+import urllib.request
+import json
+import collections
+from datasets import load_dataset
+
+class Flickr30kDataset(torch.utils.data.Dataset):
+    def __init__(self):
+        self.dataset = load_dataset("nlphuji/flickr30k", cache_dir="./huggingface_data")
+        self.transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+        ])
+        self.cap_per_image = 2
+
+    def __len__(self):
+        return self.dataset.num_rows["test"] * self.cap_per_image
+
+    def __getitem__(self, idx):
+        original_idx = idx // self.cap_per_image
+        # image_path = self.dataset[idx]["image_path"]
+        image = self.dataset["test"][original_idx]["image"].convert("RGB")
+        image = self.transform(image)
+
+        # You might need to adjust the labels based on your task
+        caption = self.dataset["test"][original_idx]["caption"][idx % self.cap_per_image]
+
+        return {'label': caption, 'label_context': caption, 'correct_idx': 0, 'correct_img': image, 'imgs': []}
