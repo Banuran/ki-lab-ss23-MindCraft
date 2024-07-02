@@ -10,7 +10,8 @@ import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import time
 
-import model as md
+#import model as md
+import align_model as md
 import model_disk_helper as mdh
 
 BATCH_SIZE = 64
