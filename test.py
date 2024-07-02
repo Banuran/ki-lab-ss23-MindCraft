@@ -15,7 +15,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"#
 import sys
 import warnings
 
-import alternative_models as amd
+import clip_models as amd
 import model as md
 import model_disk_helper as mdh
 

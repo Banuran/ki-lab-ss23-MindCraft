@@ -10,7 +10,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import time
 
 import dataset as wsd
-import alternative_models as md
+import clip_models as md
 import model_disk_helper as mdh
 
 BATCH_SIZE = 64

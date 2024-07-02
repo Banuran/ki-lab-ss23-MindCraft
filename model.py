@@ -31,29 +31,6 @@ class Projection(nn.Module):
         embeds = self.layer_norm(embed1 + embed2)
         return embeds
 
-class ExtendedProjection(nn.Module):
-    def __init__(self, d_in: int, d_out: int, p: float=0.5) -> None:
-        super().__init__()
-        self.linear1 = nn.Linear(d_in, d_out, bias=False)
-        self.linear2 = nn.Linear(d_out, d_out, bias=False)
-        self.linear3 = nn.Linear(d_out, d_out, bias=False)
-        self.linear4 = nn.Linear(d_out, d_out, bias=False)
-        self.layer_norm = nn.LayerNorm(d_out)
-        self.drop = nn.Dropout(p)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.linear1(x)
-        x = F.gelu(x)
-        x = self.linear2(x)
-        x = F.gelu(x)
-        x = self.linear3(x)
-        x = F.gelu(x)
-        x = self.linear4(x)
-        x = F.gelu(x)
-        x = self.drop(x)
-        x = self.layer_norm(x)
-        return x    
-
 class VisionEncoder(nn.Module):
     def __init__(self, d_out: int) -> None:
         super().__init__()
