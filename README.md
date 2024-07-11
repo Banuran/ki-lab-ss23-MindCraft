@@ -1,6 +1,6 @@
 # HKA KI-Lab SS23 Group MindCraft
 
-This Repository accompanies the project phase of the KI-Lab. The task was to solve the SemEval-2023 Visual Word Sense Disambiguation (Visual-WSD) CHallenge.
+This Repository accompanies the project phase of the KI-Lab. The task was to solve the SemEval-2023 Visual Word Sense Disambiguation (Visual-WSD) Challenge.
 
 ## Data
 
